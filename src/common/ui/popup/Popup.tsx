@@ -1,28 +1,62 @@
-import React, { PropsWithChildren } from 'react'
+import React, { PropsWithChildren, ReactNode } from 'react'
 import styles from './Popup.module.scss'
 import IcomoonReact from 'icomoon-react'
 import iconSet from '@/assets/icons/selection.json'
+import { IconButton } from '@mui/material'
 
 interface IPopupProps {
   title?: string
   show: boolean
   modalOnClick?: () => void
+  onclickContent?: string
+  modalOnClickPrevStep?: () => void
+  className?: string
+  children?: ReactNode
 }
 
-export const Popup = ({ show, modalOnClick, title, children }: PropsWithChildren<IPopupProps>) => {
-  const finalPopupClassName = show ? `${styles.popup_background} ${styles.popup_open}` : `${styles.popup_background}`
+export const Popup = ({
+  show,
+  modalOnClick,
+  onclickContent,
+  modalOnClickPrevStep,
+  title,
+  className,
+  children,
+}: PropsWithChildren<IPopupProps>) => {
+  let finalPopupClassName = `${styles.popup_background} `
+  finalPopupClassName += show ? `${styles.popup_open} ` : ''
+  finalPopupClassName += className ? className : ''
 
   return (
     <div className={finalPopupClassName}>
-      <div className={styles.popup} onClick={(e) => e.stopPropagation()}>
+      <div className={styles.popup}>
         <div className={styles.popup_header}>
-          <h1>{title}</h1>
-          <IcomoonReact className={styles.close_btn} iconSet={iconSet} icon="close" size={25} onClick={modalOnClick} />
+          {modalOnClickPrevStep ? (
+            <IconButton onClick={modalOnClickPrevStep}>
+              <IcomoonReact
+                className={styles.close_btn}
+                iconSet={iconSet}
+                color={'#fff'}
+                icon="arrow-ios-back"
+                size={25}
+              />
+            </IconButton>
+          ) : (
+            ''
+          )}
+          <p className={styles.title}>{title}</p>
+          {onclickContent ? (
+            <IconButton onClick={modalOnClick} size={'small'}>
+              <span className={styles.rightAction}>{onclickContent}</span>
+            </IconButton>
+          ) : (
+            <IconButton onClick={modalOnClick}>
+              <IcomoonReact className={styles.close_btn} iconSet={iconSet} color={'#fff'} icon="close" size={25} />
+            </IconButton>
+          )}
         </div>
-        <div className={styles.popup_body}>{children}</div>
+        <div>{children}</div>
       </div>
     </div>
   )
 }
-
-export default Popup

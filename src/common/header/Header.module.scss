@@ -2,10 +2,27 @@
   height: 60px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #333333;
 
   .logo {
     max-width: 128px;
     height: 36px;
     margin-left: 60px;
+  }
+
+  .logout {
+    display: flex;
+    align-items: center;
+    color: white;
+    margin-right: 64px;
+    font-size: 14px;
+    line-height: 24px;
+    font-weight: 500;
+    cursor: pointer;
+
+    .icon {
+      margin-right: 15px;
+    }
   }
 }
