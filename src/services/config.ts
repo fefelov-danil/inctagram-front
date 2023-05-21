@@ -1,9 +1,10 @@
 import { fetchBaseQuery } from '@reduxjs/toolkit/query'
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query'
-import { AppState } from '@/services/redux/store'
+import { AppDispatch, AppState } from '@/services/redux/store'
 import { addToken, stopRefresh } from '@/services/redux/tokenReducer'
+import { setLoading } from '@/services/redux/appReducer'
 
-const urlsSkipAuth = [
+const endpointsSkipAuth = [
   'login',
   'registration',
   'resendingConfirmation',
@@ -12,13 +13,21 @@ const urlsSkipAuth = [
   'logout',
 ]
 
+const endpointsSkipLoading = ['getPostsProfile']
+
+const setIsLoading = (dispatch: AppDispatch, endpoint: string, isTurnOn: boolean) => {
+  if (!endpointsSkipLoading.find((endpointName) => endpointName === endpoint)) {
+    dispatch(setLoading(isTurnOn))
+  }
+}
+
 const baseQuery = fetchBaseQuery({
   baseUrl: process.env.NEXT_PUBLIC_API_URL,
   credentials: 'include',
   prepareHeaders: (headers, { getState, endpoint }) => {
     const accessToken = (getState() as AppState).tokenReducer.accessToken
 
-    if (accessToken && !urlsSkipAuth.find((url) => url === endpoint)) {
+    if (accessToken && !endpointsSkipAuth.find((url) => url === endpoint)) {
       headers.set('Authorization', `Bearer ${accessToken}`)
     }
     return headers
@@ -30,14 +39,19 @@ export const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, Fetch
   api,
   extraOptions
 ) => {
+  setIsLoading(api.dispatch, api.endpoint, true)
   let result = await baseQuery(args, api, extraOptions)
+  setIsLoading(api.dispatch, api.endpoint, false)
+
   if (result.error && result.error.status === 401) {
     const state = api.getState() as AppState
     if (!state.tokenReducer.stopRefresh) {
       api.dispatch(stopRefresh(true))
 
       // try to get a new token
+      api.dispatch(setLoading(true))
       const response = await baseQuery({ url: '/auth/refresh-token', method: 'POST' }, api, extraOptions)
+      api.dispatch(setLoading(false))
       const data = response.data
       if (data) {
         // store the new token
@@ -45,7 +59,9 @@ export const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, Fetch
           api.dispatch(addToken(data.accessToken))
         }
         // retry the initial query
+        setIsLoading(api.dispatch, api.endpoint, true)
         result = await baseQuery(args, api, extraOptions)
+        setIsLoading(api.dispatch, api.endpoint, false)
       } else {
         api.dispatch(addToken(null))
       }
